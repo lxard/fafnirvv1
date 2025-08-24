@@ -1,0 +1,29 @@
+const fetch = require("node-fetch")
+
+let handler = async (m, { args, RyuuBotz, command, prefix, reply }) => {
+  if (!args[0]) return reply(`Where is the link?\nContoh:\n${prefix}${command} https://github.com/DGXeon/XeonMedia`)
+  if (!/^https:\/\/github\.com\/[^\/]+\/[^\/]+/.test(args[0])) return reply("Link invalid!")
+
+  const regex = /(?:https|git)(?::\/\/|@)github\.com[\/:]([^\/:]+)\/(.+)/i
+  let [, user, repo] = args[0].match(regex) || []
+  if (!user || !repo) return reply("Gagal parsing URL GitHub!")
+
+  repo = repo.replace(/.git$/, "")
+  const url = `https://api.github.com/repos/${user}/${repo}/zipball`
+
+  try {
+    const head = await fetch(url, { method: "HEAD" })
+    const filename = head.headers.get("content-disposition").match(/attachment; filename=(.*)/)[1]
+    await RyuuBotz.sendMessage(m.chat, {
+      document: { url },
+      fileName: filename + ".zip",
+      mimetype: "application/zip"
+    }, { quoted: m })
+  } catch (err) {
+    console.error(err)
+    reply("Gagal mengunduh repo.")
+  }
+}
+
+handler.command = ["git", "gitclone"]
+module.exports = handler
